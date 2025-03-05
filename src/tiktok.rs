@@ -192,9 +192,14 @@ fn reply_json<const N: usize>(
     if let Some(json) =
         deep_get(json, keys).and_then(|value| serde_json::to_string_pretty(value).ok())
     {
-        if let Err(error) =
-            crate::telegram::send_code(bot, chat_id, reply_params, &header, Some("json"), &json)
-        {
+        if let Err(error) = crate::telegram::send_code(
+            bot,
+            chat_id,
+            reply_params,
+            Some(&header),
+            Some("json"),
+            &json,
+        ) {
             let text = format!("failed to send_json_message {header}: {error:#}");
             let params = SendMessageParams::builder()
                 .chat_id(chat_id)
@@ -205,7 +210,7 @@ fn reply_json<const N: usize>(
                 .context("Should be able to send send_json_message error to user")?;
         }
     } else {
-        eprintln!("tiktok send_json_message key not there: {keys:?}");
+        eprintln!("tiktok send_json_message key not there: {header}");
     }
     Ok(())
 }

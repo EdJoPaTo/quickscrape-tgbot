@@ -3,7 +3,6 @@ use std::fmt::Write as _;
 use anyhow::Context as _;
 use frankenstein::api_params::SendMessageParams;
 use frankenstein::client_ureq::Bot;
-use frankenstein::objects::LinkPreviewOptions;
 use frankenstein::{ReplyParameters, TelegramApi as _};
 use ureq::ResponseExt as _;
 
@@ -30,7 +29,7 @@ fn inspect_url(
 
     let target_uri = response.get_uri();
 
-    let mut meta = format!("{:?}  {}\n", response.version(), response.status());
+    let mut meta = String::new();
     if let Some(history) = response
         .get_redirect_history()
         .filter(|history| history.len() > 1)
@@ -50,14 +49,14 @@ fn inspect_url(
     }
     bot.send_message(
         &SendMessageParams::builder()
-            .link_preview_options(LinkPreviewOptions::builder().is_disabled(true).build())
+            .link_preview_options(telegram::LINK_PREVIEW_DISABLED)
             .chat_id(chat_id)
             .reply_parameters(reply_params.clone())
             .text(meta)
             .build(),
     )?;
 
-    let mut partial = String::new();
+    let mut partial = format!("{:?} {}\n", response.version(), response.status());
     for (key, value) in response.headers() {
         let header = value.to_str().map_or_else(
             |_| format!("{key}: {value:?}"),
@@ -66,27 +65,16 @@ fn inspect_url(
 
         // 4096 + safety
         if partial.len().saturating_add(header.len()) > 4090 {
-            bot.send_message(
-                &SendMessageParams::builder()
-                    .link_preview_options(LinkPreviewOptions::builder().is_disabled(true).build())
-                    .chat_id(chat_id)
-                    .reply_parameters(reply_params.clone())
-                    .text(partial)
-                    .build(),
-            )?;
-            partial = String::new();
+            telegram::send_code(bot, chat_id, reply_params, None, Some("http"), &partial)?;
+            partial.clear();
         }
         partial += &header;
-        partial += "\n\n";
+        partial += if header.len() > 40 { "\n\n" } else { "\n" };
     }
-    bot.send_message(
-        &SendMessageParams::builder()
-            .link_preview_options(LinkPreviewOptions::builder().is_disabled(true).build())
-            .chat_id(chat_id)
-            .reply_parameters(reply_params.clone())
-            .text(partial)
-            .build(),
-    )?;
+    if !partial.trim().is_empty() {
+        telegram::send_code(bot, chat_id, reply_params, None, Some("http"), &partial)?;
+    }
+    drop(partial);
 
     let host = target_uri.host().context("Target URI should have a host")?;
 

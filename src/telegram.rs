@@ -187,14 +187,18 @@ pub fn send_code(
     bot: &Bot,
     chat_id: i64,
     reply_params: &ReplyParameters,
-    header: &str,
+    header: Option<&str>,
     language: Option<&str>,
     code: &str,
 ) -> anyhow::Result<()> {
+    let text = header.map_or_else(|| code.to_owned(), |header| format!("{header}:\n{code}"));
+    let offset = header.map_or(0, |header| {
+        header.encode_utf16().count().saturating_add(":\n".len()) as u16
+    });
     let entity = MessageEntity::builder()
         .type_field(MessageEntityType::Pre)
         .maybe_language(language)
-        .offset(header.encode_utf16().count().saturating_add(":\n".len()) as u16)
+        .offset(offset)
         .length(code.encode_utf16().count() as u16)
         .build();
     bot.send_message(
@@ -203,7 +207,7 @@ pub fn send_code(
             .chat_id(chat_id)
             .reply_parameters(reply_params.clone())
             .entities(vec![entity])
-            .text(format!("{header}:\n{code}"))
+            .text(text)
             .build(),
     )
     .context("Should be able to send_message")?;
