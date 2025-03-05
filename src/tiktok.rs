@@ -1,6 +1,7 @@
 use std::fmt::Write as _;
 
 use anyhow::Context as _;
+use chrono::{DateTime, Utc};
 use frankenstein::{SendAudioParams, SendMessageParams, SendPhotoParams, TelegramApi as _};
 use scraper::Html;
 use serde_json::Value;
@@ -26,7 +27,7 @@ pub fn analyze(
             &SendMessageParams::builder()
                 .chat_id(chat_id)
                 .reply_parameters(reply_params.clone())
-                .text(format!("Share description:\n\n{share_desc}"))
+                .text(format!("shareMeta.desc:\n\n{share_desc}"))
                 .build(),
         )
         .context("Should be able to send share description")?;
@@ -37,8 +38,8 @@ pub fn analyze(
         .context("Should have itemInfo")?
         .get("itemStruct")
         .context("Should have itemStruct")?;
-
-    dbg!(item.get("createTime"), item.get("scheduleTime"));
+    #[cfg(debug_assertions)]
+    dbg!(item.as_object().unwrap().keys().collect::<Vec<_>>());
 
     let desc = item.get("desc").and_then(Value::as_str);
     if let Some(desc) = desc.filter(|desc| Some(*desc) != share_desc) {
@@ -46,7 +47,7 @@ pub fn analyze(
             &SendMessageParams::builder()
                 .chat_id(chat_id)
                 .reply_parameters(reply_params.clone())
-                .text(format!("Description:\n\n{desc}"))
+                .text(format!("desc:\n\n{desc}"))
                 .build(),
         )
         .context("Should be able to send description")?;
@@ -68,10 +69,32 @@ pub fn analyze(
             &SendMessageParams::builder()
                 .chat_id(chat_id)
                 .reply_parameters(reply_params.clone())
-                .text(format!("Contents:\n\n{contents}"))
+                .text(format!("contents:\n\n{contents}"))
                 .build(),
         )
         .context("Should be able to send contents")?;
+    }
+
+    let mut times = String::new();
+    if let Some(time) = item.get("createTime").and_then(parse_timestamp) {
+        writeln!(times, "createTime: {time}").unwrap();
+    }
+    if let Some(time) = item.get("scheduleTime").and_then(parse_timestamp) {
+        writeln!(times, "scheduleTime: {time}").unwrap();
+    }
+    if let Some(time) = item.get("takeDown").and_then(parse_timestamp) {
+        // Not sure whether thats actually a timestamp
+        writeln!(times, "takeDown: {time}").unwrap();
+    }
+    if !times.is_empty() {
+        bot.send_message(
+            &SendMessageParams::builder()
+                .chat_id(chat_id)
+                .reply_parameters(reply_params.clone())
+                .text(times)
+                .build(),
+        )
+        .context("Should be able to send times")?;
     }
 
     reply_json(bot, chat_id, reply_params, item, ["stats"])?;
@@ -84,37 +107,38 @@ pub fn analyze(
                     .chat_id(chat_id)
                     .reply_parameters(reply_params.clone())
                     .photo(avatar.to_owned())
+                    .caption("author")
                     .build(),
             )
             .expect("Should be able to send author avatar");
         }
-
-        reply_json(bot, chat_id, reply_params, item, ["authorStats"])?;
 
         if let Some(signature) = author.get("signature").and_then(Value::as_str) {
             bot.send_message(
                 &SendMessageParams::builder()
                     .chat_id(chat_id)
                     .reply_parameters(reply_params.clone())
-                    .text(format!("Author signature:\n\n{signature}"))
+                    .text(format!("author signature:\n\n{signature}"))
                     .build(),
             )
             .context("Should be able to send author signature")?;
         }
     }
 
+    reply_json(bot, chat_id, reply_params, item, ["authorStats"])?;
+
     if let Some(music) = item.get("music").and_then(Value::as_object) {
         let mut caption = "Music behind video\n\n".to_owned();
         let title = music.get("title").and_then(Value::as_str);
         if let Some(title) = title {
-            writeln!(caption, "Title: {title}").unwrap();
+            writeln!(caption, "title: {title}").unwrap();
         }
         let artist = music.get("authorName").and_then(Value::as_str);
         if let Some(artist) = artist {
-            writeln!(caption, "Artist: {artist}").unwrap();
+            writeln!(caption, "authorName: {artist}").unwrap();
         }
         if let Some(album) = music.get("album").and_then(Value::as_str) {
-            writeln!(caption, "Album: {album}").unwrap();
+            writeln!(caption, "album: {album}").unwrap();
         }
 
         if let Some(cover) = music.get("coverLarge").and_then(Value::as_str) {
@@ -196,6 +220,18 @@ fn deep_get<'json, const N: usize>(
     Some(json)
 }
 
+fn parse_timestamp(value: &Value) -> Option<DateTime<Utc>> {
+    let unix_timestamp = match value {
+        Value::Number(number) => number.as_i64(),
+        Value::String(str) => str.parse().ok(),
+        _ => None,
+    }?;
+    if unix_timestamp == 0 {
+        return None;
+    }
+    DateTime::from_timestamp(unix_timestamp, 0)
+}
+
 fn extract_json(html: &str) -> anyhow::Result<Value> {
     Html::parse_document(html)
         .select(selector!(r#"body script[type="application/json"]"#))
@@ -214,4 +250,20 @@ fn znd_has_parseable_json() {
     println!("json character length: {}", json.len());
     // println!("{json}");
     // todo!();
+}
+
+#[test]
+fn parse_timestamp_works() {
+    let expected = chrono::NaiveDate::from_ymd_opt(2025, 1, 19)
+        .unwrap()
+        .and_hms_opt(16, 53, 21)
+        .unwrap()
+        .and_utc();
+    assert_eq!(parse_timestamp(&0.into()), None);
+    assert_eq!(parse_timestamp(&Value::String("0".to_owned())), None);
+    assert_eq!(parse_timestamp(&1_737_305_601.into()), Some(expected));
+    assert_eq!(
+        parse_timestamp(&Value::String("1737305601".to_owned())),
+        Some(expected)
+    );
 }
