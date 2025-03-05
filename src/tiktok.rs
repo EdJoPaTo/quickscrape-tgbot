@@ -197,22 +197,13 @@ fn deep_get<'json, const N: usize>(
 }
 
 fn extract_json(html: &str) -> anyhow::Result<Value> {
-    let html = Html::parse_document(html);
-
-    let mut json_scripts = html.select(selector!(r#"body script[type="application/json"]"#));
-    let single = json_scripts
+    Html::parse_document(html)
+        .select(selector!(r#"body script[type="application/json"]"#))
+        .filter_map(|element| serde_json::from_str::<Value>(element.inner_html().trim()).ok())
+        .filter_map(|mut value| value.get_mut("__DEFAULT_SCOPE__").map(Value::take))
+        .filter_map(|mut value| value.get_mut("webapp.video-detail").map(Value::take))
         .single()
-        .context("Should have a single json script in body")?;
-    let mut json = serde_json::from_str::<Value>(single.inner_html().trim())
-        .context("Should be valid JSON in json script element")?;
-
-    let video_details = json
-        .get_mut("__DEFAULT_SCOPE__")
-        .context("Should have main key")?
-        .get_mut("webapp.video-detail")
-        .context("Should have video details key")?
-        .take();
-    Ok(video_details)
+        .context("Should have a single relevant json script in body")
 }
 
 #[test]

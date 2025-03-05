@@ -1,6 +1,3 @@
-use scraper::ElementRef;
-use scraper::html::Select;
-
 pub trait Single<T> {
     fn single(&mut self) -> Result<T, SingleError>;
 }
@@ -22,8 +19,11 @@ impl core::fmt::Display for SingleError {
 
 impl core::error::Error for SingleError {}
 
-impl<'a> Single<ElementRef<'a>> for Select<'a, '_> {
-    fn single(&mut self) -> Result<ElementRef<'a>, SingleError> {
+impl<I, T> Single<T> for I
+where
+    I: Iterator<Item = T>,
+{
+    fn single(&mut self) -> Result<T, SingleError> {
         let first = self.next();
         if self.next().is_some() {
             return Err(SingleError::MoreThanOne);
