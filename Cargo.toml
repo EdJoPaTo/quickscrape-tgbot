@@ -1,0 +1,27 @@
+[package]
+name = "quickscrape-tgbot"
+description = "Get some infos from a pasted link"
+version = "0.1.0"
+repository = "https://github.com/EdJoPaTo/quickscrape-tgbot"
+authors = ["EdJoPaTo <quickscrape-tgbot-rust@edjopato.de>"]
+edition = "2024"
+
+[lints.rust]
+unsafe_code = "forbid"
+unused_qualifications = "warn"
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+min_ident_chars = "warn"
+
+[profile.release]
+# See https://doc.rust-lang.org/cargo/reference/profiles.html
+codegen-units = 1
+lto = true
+
+[dependencies]
+anyhow = "1"
+frankenstein = { version = "0.39", features = ["client-ureq"] }
+scraper = "0.23"
+serde_json = "1"
+ureq = "3"
