@@ -57,12 +57,24 @@ impl Telegram {
     where
         F: Fn(&Bot, i64, &ReplyParameters, &str) -> anyhow::Result<()>,
     {
+        let mut get_updates_worked = true;
         let mut get_updates_params = GetUpdatesParams::builder().timeout(300).build();
         loop {
-            let updates = self
-                .bot
-                .get_updates(&get_updates_params)
-                .expect("Should be able to get updates");
+            let updates = match self.bot.get_updates(&get_updates_params) {
+                Ok(updates) => updates,
+                Err(error) => {
+                    // When it didnt work last time, fully error out
+                    assert!(
+                        get_updates_worked,
+                        "Another error while Telegram bot get_updates: {error:#}"
+                    );
+                    get_updates_worked = false;
+                    eprintln!("Error while Telegram bot get_updates: {error:#}");
+                    continue;
+                }
+            };
+            get_updates_worked = true;
+
             for update in updates.result {
                 get_updates_params.offset = Some(i64::from(update.update_id).saturating_add(1));
                 match update.content {
