@@ -5,12 +5,22 @@ use frankenstein::api_params::SendMessageParams;
 use frankenstein::client_ureq::Bot;
 use frankenstein::{ReplyParameters, TelegramApi as _};
 use ureq::ResponseExt as _;
+use ureq::http::{HeaderName, header};
 
 mod http;
 mod macros;
 mod single;
 mod telegram;
 mod tiktok;
+
+const INTERESTING_HEADERS: &[HeaderName] = &[
+    header::CACHE_CONTROL,
+    header::CONTENT_LENGTH,
+    header::CONTENT_TYPE,
+    header::EXPIRES,
+    header::LAST_MODIFIED,
+    header::SERVER,
+];
 
 fn main() {
     let tg = telegram::Telegram::new();
@@ -60,7 +70,13 @@ fn inspect_url(
     for (key, value) in response.headers() {
         let header = value.to_str().map_or_else(
             |_| format!("{key}: {value:?}"),
-            |value| format!("{key}: {value}"),
+            |value| {
+                if value.len() <= 30 || INTERESTING_HEADERS.contains(key) {
+                    format!("{key}: {value}")
+                } else {
+                    format!("{key}: <omitted>")
+                }
+            },
         );
 
         // 4096 + safety
@@ -69,7 +85,7 @@ fn inspect_url(
             partial.clear();
         }
         partial += &header;
-        partial += if header.len() > 40 { "\n\n" } else { "\n" };
+        partial += if header.len() > 45 { "\n\n" } else { "\n" };
     }
     if !partial.trim().is_empty() {
         telegram::send_code(bot, chat_id, reply_params, None, Some("http"), &partial)?;
