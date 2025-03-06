@@ -122,10 +122,11 @@ impl Telegram {
 
     /// Leave channel and ignore errors (like not being part of the channel anymore)
     fn leave_channel(&self, chat_id: i64) {
+        let text = "Adding a random bot as an admin to your channel is maybe not the best idea…\n\nSincerely, a random bot, added as an admin to this channel.'";
         let send_message_params = SendMessageParams::builder()
-        .chat_id(chat_id)
-        .text("Adding a random bot as an admin to your channel is maybe not the best idea…\n\nSincerely, a random bot, added as an admin to this channel.'")
-        .build();
+            .chat_id(chat_id)
+            .text(text)
+            .build();
         let _: Result<MethodResponse<_>, _> = self.bot.send_message(&send_message_params);
         let _: Result<MethodResponse<_>, _> = self.bot.leave_chat(&LeaveChatParams {
             chat_id: frankenstein::ChatId::Integer(chat_id),
