@@ -1,9 +1,10 @@
 use std::fmt::Write as _;
 
 use anyhow::Context as _;
-use frankenstein::api_params::SendMessageParams;
+use frankenstein::TelegramApi as _;
 use frankenstein::client_ureq::Bot;
-use frankenstein::{ReplyParameters, TelegramApi as _};
+use frankenstein::methods::SendMessageParams;
+use frankenstein::types::{LinkPreviewOptions, ReplyParameters};
 use ureq::ResponseExt as _;
 use ureq::http::{HeaderName, header};
 
@@ -59,7 +60,7 @@ fn inspect_url(
     }
     bot.send_message(
         &SendMessageParams::builder()
-            .link_preview_options(telegram::LINK_PREVIEW_DISABLED)
+            .link_preview_options(LinkPreviewOptions::DISABLED)
             .chat_id(chat_id)
             .reply_parameters(reply_params.clone())
             .text(meta)

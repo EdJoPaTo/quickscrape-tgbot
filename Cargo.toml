@@ -22,7 +22,7 @@ lto = true
 [dependencies]
 anyhow = "1"
 chrono = { version = "0.4", default-features = false }
-frankenstein = { version = "0.39", features = ["client-ureq"] }
+frankenstein = { version = "0.40", features = ["client-ureq"] }
 scraper = "0.23"
 serde_json = "1"
 ureq = "3"

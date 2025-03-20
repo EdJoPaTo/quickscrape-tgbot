@@ -2,7 +2,8 @@ use std::fmt::Write as _;
 
 use anyhow::Context as _;
 use chrono::{DateTime, Utc};
-use frankenstein::{SendAudioParams, SendMessageParams, SendPhotoParams, TelegramApi as _};
+use frankenstein::TelegramApi as _;
+use frankenstein::methods::{SendAudioParams, SendMessageParams, SendPhotoParams};
 use scraper::Html;
 use serde_json::Value;
 
@@ -13,7 +14,7 @@ use crate::single::Single as _;
 pub fn analyze(
     bot: &frankenstein::client_ureq::Bot,
     chat_id: i64,
-    reply_params: &frankenstein::ReplyParameters,
+    reply_params: &frankenstein::types::ReplyParameters,
     body: &str,
 ) -> anyhow::Result<()> {
     let json = extract_json(body)?;
@@ -184,7 +185,7 @@ pub fn analyze(
 fn reply_json<const N: usize>(
     bot: &frankenstein::client_ureq::Bot,
     chat_id: i64,
-    reply_params: &frankenstein::ReplyParameters,
+    reply_params: &frankenstein::types::ReplyParameters,
     json: &Value,
     keys: [&'static str; N],
 ) -> anyhow::Result<()> {

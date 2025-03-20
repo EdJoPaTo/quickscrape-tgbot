@@ -1,19 +1,10 @@
 use anyhow::Context as _;
-use frankenstein::api_params::{GetUpdatesParams, SendMessageParams};
+use frankenstein::TelegramApi as _;
 use frankenstein::client_ureq::Bot;
-use frankenstein::objects::MessageEntityType;
-use frankenstein::{
-    ChatType, LeaveChatParams, LinkPreviewOptions, Message, MessageEntity, MethodResponse,
-    ReplyParameters, TelegramApi as _, UpdateContent,
-};
-
-pub const LINK_PREVIEW_DISABLED: LinkPreviewOptions = LinkPreviewOptions {
-    is_disabled: Some(true),
-    url: None,
-    prefer_small_media: None,
-    prefer_large_media: None,
-    show_above_text: None,
-};
+use frankenstein::methods::{GetUpdatesParams, LeaveChatParams, SendMessageParams};
+use frankenstein::response::MethodResponse;
+use frankenstein::types::{ChatType, Message, MessageEntity, MessageEntityType, ReplyParameters};
+use frankenstein::updates::UpdateContent;
 
 pub struct Telegram {
     bot: Bot,
@@ -47,7 +38,7 @@ impl Telegram {
         let username = me.result.username.expect("Bot should have a username");
         println!("Telegram Bot acts as @{username}");
 
-        bot.delete_my_commands(&frankenstein::DeleteMyCommandsParams::builder().build())
+        bot.delete_my_commands(&frankenstein::methods::DeleteMyCommandsParams::builder().build())
             .expect("Should be able to delete_my_commands");
 
         Self { bot, allowed_users }
@@ -141,7 +132,7 @@ impl Telegram {
             .build();
         let _: Result<MethodResponse<_>, _> = self.bot.send_message(&send_message_params);
         let _: Result<MethodResponse<_>, _> = self.bot.leave_chat(&LeaveChatParams {
-            chat_id: frankenstein::ChatId::Integer(chat_id),
+            chat_id: frankenstein::types::ChatId::Integer(chat_id),
         });
     }
 
@@ -216,7 +207,7 @@ pub fn send_code(
         .build();
     bot.send_message(
         &SendMessageParams::builder()
-            .link_preview_options(LINK_PREVIEW_DISABLED)
+            .link_preview_options(frankenstein::types::LinkPreviewOptions::DISABLED)
             .chat_id(chat_id)
             .reply_parameters(reply_params.clone())
             .entities(vec![entity])
