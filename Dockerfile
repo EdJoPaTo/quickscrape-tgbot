@@ -16,7 +16,8 @@ RUN cargo build --release --locked --offline
 
 
 FROM docker.io/library/alpine:3 AS final
-RUN apk upgrade --no-cache
+RUN apk upgrade --no-cache \
+	&& apk add --no-cache ffmpeg yt-dlp
 
 WORKDIR /app
 

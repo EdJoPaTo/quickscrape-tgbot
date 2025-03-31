@@ -8,11 +8,13 @@ use frankenstein::types::{LinkPreviewOptions, ReplyParameters};
 use ureq::ResponseExt as _;
 use ureq::http::{HeaderName, header};
 
+mod ffmpeg;
 mod http;
 mod macros;
 mod single;
 mod telegram;
 mod tiktok;
+mod yt_dlp;
 
 const INTERESTING_HEADERS: &[HeaderName] = &[
     header::CACHE_CONTROL,
@@ -92,6 +94,16 @@ fn inspect_url(
         telegram::send_code(bot, chat_id, reply_params, None, Some("http"), &partial)?;
     }
     drop(partial);
+
+    if let Err(error) = yt_dlp::send_video(bot, chat_id, reply_params, &target_uri.to_string()) {
+        bot.send_message(
+            &SendMessageParams::builder()
+                .chat_id(chat_id)
+                .reply_parameters(reply_params.clone())
+                .text(format!("Failed with yt-dlp: {error:?}"))
+                .build(),
+        )?;
+    }
 
     let host = target_uri.host().context("Target URI should have a host")?;
 
