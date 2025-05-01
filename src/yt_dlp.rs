@@ -1,4 +1,4 @@
-use frankenstein::TelegramApi;
+use frankenstein::TelegramApi as _;
 use frankenstein::methods::{
     DeleteMessageParams, EditMessageTextParams, SendChatActionParams, SendMessageParams,
     SendVideoParams,
