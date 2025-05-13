@@ -31,7 +31,7 @@ impl VideoStats {
         };
 
         let (width, height) = {
-            let captures = regex!(r", (\d+)x(\d+) \[")
+            let captures = regex!(r"Stream .+, ([1-9]\d+)x([1-9]\d+)")
                 .captures(&output)
                 .context("resolution not found in ffprobe output")?;
             let width = captures.get(1).unwrap().as_str().parse().unwrap();
