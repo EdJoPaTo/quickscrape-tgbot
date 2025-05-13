@@ -88,7 +88,7 @@ fn inspect_url(
             partial.clear();
         }
         partial += &header;
-        partial += if header.len() > 45 { "\n\n" } else { "\n" };
+        partial += "\n";
     }
     if !partial.trim().is_empty() {
         telegram::send_code(bot, chat_id, reply_params, None, Some("http"), &partial)?;
