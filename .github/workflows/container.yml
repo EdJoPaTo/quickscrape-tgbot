@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
   # Build regularly in order to have up to date base image in the edge image
   schedule:
-    - cron: "42 2 * * 6" # weekly on Saturday 2:42 UTC
+    - cron: "42 2 * * */2" # every two days (Sun,Tue,Thu,Sat) on 2:42 UTC
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,7 +22,6 @@ permissions:
 jobs:
   docker:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
     steps:
       - uses: docker/metadata-action@v5
         id: meta
