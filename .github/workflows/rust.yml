@@ -126,7 +126,7 @@ jobs:
           -C target/${{ matrix.triple }}/release/ quickscrape-tgbot
           | gzip --best > ${{ env.ARTIFACT_NAME }}.tar.gz
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.triple }}
           path: |
