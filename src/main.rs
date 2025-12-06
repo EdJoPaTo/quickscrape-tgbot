@@ -6,7 +6,6 @@ use frankenstein::client_ureq::Bot;
 use frankenstein::methods::SendMessageParams;
 use frankenstein::types::{LinkPreviewOptions, ReplyParameters};
 use ureq::ResponseExt as _;
-use ureq::http::{HeaderName, header};
 
 mod ffmpeg;
 mod http;
@@ -15,15 +14,6 @@ mod single;
 mod telegram;
 mod tiktok;
 mod yt_dlp;
-
-const INTERESTING_HEADERS: &[HeaderName] = &[
-    header::CACHE_CONTROL,
-    header::CONTENT_LENGTH,
-    header::CONTENT_TYPE,
-    header::EXPIRES,
-    header::LAST_MODIFIED,
-    header::SERVER,
-];
 
 fn main() {
     let tg = telegram::Telegram::new();
@@ -69,31 +59,7 @@ fn inspect_url(
             .build(),
     )?;
 
-    let mut partial = format!("{:?} {}\n", response.version(), response.status());
-    for (key, value) in response.headers() {
-        let header = value.to_str().map_or_else(
-            |_| format!("{key}: {value:?}"),
-            |value| {
-                if value.len() <= 30 || INTERESTING_HEADERS.contains(key) {
-                    format!("{key}: {value}")
-                } else {
-                    format!("{key}: <omitted>")
-                }
-            },
-        );
-
-        // 4096 + safety
-        if partial.len().saturating_add(header.len()) > 4090 {
-            telegram::send_code(bot, chat_id, reply_params, None, Some("http"), &partial)?;
-            partial.clear();
-        }
-        partial += &header;
-        partial += "\n";
-    }
-    if !partial.trim().is_empty() {
-        telegram::send_code(bot, chat_id, reply_params, None, Some("http"), &partial)?;
-    }
-    drop(partial);
+    telegram::send_http_headers(bot, chat_id, reply_params, &response)?;
 
     if let Err(error) = yt_dlp::send_video(bot, chat_id, reply_params, &target_uri.to_string()) {
         bot.send_message(

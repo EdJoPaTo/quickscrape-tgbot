@@ -5,6 +5,8 @@ use frankenstein::methods::{GetUpdatesParams, LeaveChatParams, SendMessageParams
 use frankenstein::response::MethodResponse;
 use frankenstein::types::{ChatType, Message, MessageEntity, MessageEntityType, ReplyParameters};
 use frankenstein::updates::UpdateContent;
+use ureq::Body;
+use ureq::http::{HeaderName, Response, header};
 
 pub struct Telegram {
     bot: Bot,
@@ -215,5 +217,103 @@ pub fn send_code(
             .build(),
     )
     .context("Should be able to send_message")?;
+    Ok(())
+}
+
+pub fn send_http_headers(
+    bot: &Bot,
+    chat_id: i64,
+    reply_params: &ReplyParameters,
+    response: &Response<Body>,
+) -> anyhow::Result<()> {
+    const INTERESTING_HEADERS: &[HeaderName] = &[
+        header::CACHE_CONTROL,
+        header::CONTENT_LENGTH,
+        header::CONTENT_TYPE,
+        header::EXPIRES,
+        header::LAST_MODIFIED,
+        header::SERVER,
+    ];
+    let language = Some("http");
+
+    let mut text = format!("{:?} {}\n", response.version(), response.status());
+    let mut omitted = Vec::new();
+
+    for (key, value) in response.headers() {
+        let header = match value.to_str() {
+            Ok(value) => {
+                if value.len() <= 30 || INTERESTING_HEADERS.contains(key) {
+                    format!("{key}: {value}")
+                } else {
+                    omitted.push(key.to_string());
+                    continue;
+                }
+            }
+            Err(_) => format!("{key}: {value:?}"),
+        };
+
+        // 4096 + safety
+        if text.len().saturating_add(header.len()) > 4090 {
+            send_code(bot, chat_id, reply_params, None, language, &text)?;
+            text.clear();
+        }
+        text += &header;
+        text += "\n";
+    }
+    let omitted_text_length =
+        omitted.iter().map(String::len).sum::<usize>() + (omitted.len().saturating_sub(1) * 2);
+    // 4096 + safety
+    if text.len().saturating_add(omitted_text_length) > 4000 {
+        send_code(bot, chat_id, reply_params, None, language, &text)?;
+        text.clear();
+    }
+
+    let mut entities = Vec::new();
+    if !text.is_empty() {
+        #[expect(clippy::cast_possible_truncation)]
+        entities.push(
+            MessageEntity::builder()
+                .type_field(MessageEntityType::Pre)
+                .maybe_language(language)
+                .offset(0)
+                .length(text.encode_utf16().count() as u16)
+                .build(),
+        );
+    }
+
+    if !omitted.is_empty() {
+        text += "\n\nomitted: ";
+        let mut first = true;
+        for omitted in omitted {
+            if first {
+                first = false;
+            } else {
+                text += ", ";
+            }
+            #[expect(clippy::cast_possible_truncation)]
+            entities.push(
+                MessageEntity::builder()
+                    .type_field(MessageEntityType::Code)
+                    .maybe_language(language)
+                    .offset(text.len() as u16)
+                    .length(omitted.len() as u16)
+                    .build(),
+            );
+            text += &omitted;
+        }
+    }
+
+    if !text.is_empty() {
+        bot.send_message(
+            &SendMessageParams::builder()
+                .link_preview_options(frankenstein::types::LinkPreviewOptions::DISABLED)
+                .chat_id(chat_id)
+                .reply_parameters(reply_params.clone())
+                .entities(entities)
+                .text(text)
+                .build(),
+        )
+        .context("Should be able to send http headers")?;
+    }
     Ok(())
 }
