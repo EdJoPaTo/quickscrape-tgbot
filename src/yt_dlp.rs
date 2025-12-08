@@ -34,7 +34,6 @@ pub fn send_video(
         .arg("--embed-subs")
         .arg("--sub-langs=all")
         .arg("--sponsorblock-remove=default")
-        .arg("--paths=temp:/tmp/yt-dlp")
         .arg("--no-progress")
         .arg("--no-playlist")
         .arg("--restrict-filenames")
