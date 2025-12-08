@@ -253,17 +253,30 @@ pub fn send_http_headers(
         };
 
         // 4096 + safety
-        if text.len().saturating_add(header.len()) > 4090 {
+        if text
+            .encode_utf16()
+            .count()
+            .saturating_add(header.encode_utf16().count())
+            > 4090
+        {
             send_code(bot, chat_id, reply_params, None, language, &text)?;
             text.clear();
         }
         text += &header;
         text += "\n";
     }
-    let omitted_text_length =
-        omitted.iter().map(String::len).sum::<usize>() + omitted.len().saturating_sub(1);
+    let omitted_text_length = omitted
+        .iter()
+        .map(|str| str.encode_utf16().count())
+        .sum::<usize>()
+        .saturating_add(omitted.len());
     // 4096 + safety
-    if text.len().saturating_add(omitted_text_length) > 4000 {
+    if text
+        .encode_utf16()
+        .count()
+        .saturating_add(omitted_text_length)
+        > 4080
+    {
         send_code(bot, chat_id, reply_params, None, language, &text)?;
         text.clear();
     }
@@ -282,7 +295,7 @@ pub fn send_http_headers(
     }
 
     if !omitted.is_empty() {
-        let begin_quote = text.len();
+        let begin_quote = text.encode_utf16().count();
         text += "omitted:";
         for omitted in omitted {
             text += "\n";
@@ -291,8 +304,8 @@ pub fn send_http_headers(
                 MessageEntity::builder()
                     .type_field(MessageEntityType::Code)
                     .maybe_language(language)
-                    .offset(text.len() as u16)
-                    .length(omitted.len() as u16)
+                    .offset(text.encode_utf16().count() as u16)
+                    .length(omitted.encode_utf16().count() as u16)
                     .build(),
             );
             text += &omitted;
@@ -302,7 +315,7 @@ pub fn send_http_headers(
             MessageEntity::builder()
                 .type_field(MessageEntityType::ExpandableBlockquote)
                 .offset(begin_quote as u16)
-                .length(text.len().saturating_sub(begin_quote) as u16)
+                .length(text.encode_utf16().count().saturating_sub(begin_quote) as u16)
                 .build(),
         );
     }
