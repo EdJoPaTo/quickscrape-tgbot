@@ -220,6 +220,55 @@ pub fn send_code(
     Ok(())
 }
 
+pub fn send_stdout_stderr(
+    bot: &Bot,
+    chat_id: i64,
+    reply_params: &ReplyParameters,
+    toolhint: &str,
+    stdout: &str,
+    stderr: &str,
+) -> anyhow::Result<()> {
+    if !stdout.trim().is_empty() {
+        let text = format!("{toolhint} stdout:\n{stdout}");
+        #[expect(clippy::cast_possible_truncation)]
+        let entity = MessageEntity::builder()
+            .type_field(MessageEntityType::ExpandableBlockquote)
+            .offset(0)
+            .length(text.encode_utf16().count() as u16)
+            .build();
+        bot.send_message(
+            &SendMessageParams::builder()
+                .link_preview_options(frankenstein::types::LinkPreviewOptions::DISABLED)
+                .chat_id(chat_id)
+                .reply_parameters(reply_params.clone())
+                .entities(vec![entity])
+                .text(text)
+                .build(),
+        )
+        .context("Should be able to send_message")?;
+    }
+    if !stderr.trim().is_empty() {
+        let text = format!("{toolhint} stderr:\n{stderr}");
+        #[expect(clippy::cast_possible_truncation)]
+        let entity = MessageEntity::builder()
+            .type_field(MessageEntityType::ExpandableBlockquote)
+            .offset(0)
+            .length(text.encode_utf16().count() as u16)
+            .build();
+        bot.send_message(
+            &SendMessageParams::builder()
+                .link_preview_options(frankenstein::types::LinkPreviewOptions::DISABLED)
+                .chat_id(chat_id)
+                .reply_parameters(reply_params.clone())
+                .entities(vec![entity])
+                .text(text)
+                .build(),
+        )
+        .context("Should be able to send_message")?;
+    }
+    Ok(())
+}
+
 pub fn send_http_headers(
     bot: &Bot,
     chat_id: i64,

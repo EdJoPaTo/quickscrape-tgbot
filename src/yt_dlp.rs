@@ -111,28 +111,8 @@ pub fn send_video(
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    if !stdout.is_empty() {
-        crate::telegram::send_code(
-            bot,
-            chat_id,
-            reply_params,
-            Some("yt-dlp stdout"),
-            Some("plaintext"),
-            &stdout,
-        )?;
-    }
-
     let stderr = String::from_utf8_lossy(&output.stderr);
-    if !stderr.is_empty() {
-        crate::telegram::send_code(
-            bot,
-            chat_id,
-            reply_params,
-            Some("yt-dlp stderr"),
-            Some("plaintext"),
-            &stderr,
-        )?;
-    }
+    crate::telegram::send_stdout_stderr(bot, chat_id, reply_params, "yt-dlp", &stdout, &stderr)?;
 
     Ok(())
 }
