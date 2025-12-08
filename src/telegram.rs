@@ -261,7 +261,7 @@ pub fn send_http_headers(
         text += "\n";
     }
     let omitted_text_length =
-        omitted.iter().map(String::len).sum::<usize>() + (omitted.len().saturating_sub(1) * 2);
+        omitted.iter().map(String::len).sum::<usize>() + omitted.len().saturating_sub(1);
     // 4096 + safety
     if text.len().saturating_add(omitted_text_length) > 4000 {
         send_code(bot, chat_id, reply_params, None, language, &text)?;
@@ -282,14 +282,10 @@ pub fn send_http_headers(
     }
 
     if !omitted.is_empty() {
-        text += "\n\nomitted: ";
-        let mut first = true;
+        let begin_quote = text.len();
+        text += "omitted:";
         for omitted in omitted {
-            if first {
-                first = false;
-            } else {
-                text += ", ";
-            }
+            text += "\n";
             #[expect(clippy::cast_possible_truncation)]
             entities.push(
                 MessageEntity::builder()
@@ -301,6 +297,14 @@ pub fn send_http_headers(
             );
             text += &omitted;
         }
+        #[expect(clippy::cast_possible_truncation)]
+        entities.push(
+            MessageEntity::builder()
+                .type_field(MessageEntityType::ExpandableBlockquote)
+                .offset(begin_quote as u16)
+                .length(text.len().saturating_sub(begin_quote) as u16)
+                .build(),
+        );
     }
 
     if !text.is_empty() {
