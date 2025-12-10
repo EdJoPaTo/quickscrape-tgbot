@@ -7,7 +7,6 @@ use frankenstein::types::ChatAction;
 
 use crate::ffmpeg::VideoStats;
 
-#[expect(clippy::too_many_lines)]
 pub fn send_video(
     bot: &frankenstein::client_ureq::Bot,
     chat_id: i64,
