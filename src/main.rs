@@ -61,7 +61,7 @@ fn inspect_url(
 
     telegram::send_http_headers(bot, chat_id, reply_params, &response)?;
 
-    if let Err(error) = yt_dlp::send_video(bot, chat_id, reply_params, &target_uri.to_string()) {
+    if let Err(error) = yt_dlp::analyze(bot, chat_id, reply_params, &target_uri.to_string()) {
         bot.send_message(
             &SendMessageParams::builder()
                 .chat_id(chat_id)

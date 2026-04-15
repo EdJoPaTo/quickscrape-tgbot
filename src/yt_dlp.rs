@@ -1,13 +1,14 @@
 use frankenstein::TelegramApi as _;
 use frankenstein::methods::{
-    DeleteMessageParams, EditMessageTextParams, SendChatActionParams, SendMessageParams,
-    SendVideoParams,
+    DeleteMessageParams, EditMessageTextParams, SendChatActionParams, SendDocumentParams,
+    SendMessageParams, SendVideoParams,
 };
 use frankenstein::types::ChatAction;
 
 use crate::ffmpeg::VideoStats;
 
-pub fn send_video(
+#[expect(clippy::too_many_lines)]
+pub fn analyze(
     bot: &frankenstein::client_ureq::Bot,
     chat_id: i64,
     reply_params: &frankenstein::types::ReplyParameters,
@@ -28,6 +29,7 @@ pub fn send_video(
 
     let output = std::process::Command::new("yt-dlp")
         .current_dir(tempdir.path())
+        .arg("--write-description")
         .arg("--embed-chapters")
         .arg("--embed-metadata")
         .arg("--embed-subs")
@@ -46,6 +48,29 @@ pub fn send_video(
         let path = entry
             .expect("Should be able to read file in tempdir")
             .path();
+
+        if path.extension().and_then(std::ffi::OsStr::to_str) == Some("description") {
+            if let Some(description) = std::fs::read_to_string(&path)
+                .ok()
+                .filter(|description| description.encode_utf16().count() < 4000)
+            {
+                crate::telegram::send_expandable_blockquote_without_linkpreview(
+                    bot,
+                    chat_id,
+                    reply_params,
+                    &description,
+                )?;
+            } else {
+                bot.send_document(
+                    &SendDocumentParams::builder()
+                        .chat_id(chat_id)
+                        .reply_parameters(reply_params.clone())
+                        .document(path)
+                        .build(),
+                )?;
+            }
+            continue;
+        }
 
         bot.send_chat_action(
             &SendChatActionParams::builder()
