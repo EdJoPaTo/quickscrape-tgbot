@@ -1,3 +1,4 @@
+use anyhow::Context as _;
 use frankenstein::TelegramApi as _;
 use frankenstein::methods::{
     DeleteMessageParams, EditMessageTextParams, SendChatActionParams, SendDocumentParams,
@@ -59,7 +60,8 @@ pub fn analyze(
                     chat_id,
                     reply_params,
                     &description,
-                )?;
+                )
+                .context("send description as blockquote")?;
             } else {
                 bot.send_document(
                     &SendDocumentParams::builder()
@@ -67,7 +69,8 @@ pub fn analyze(
                         .reply_parameters(reply_params.clone())
                         .document(path)
                         .build(),
-                )?;
+                )
+                .context("send description as document")?;
             }
             continue;
         }
@@ -123,7 +126,8 @@ pub fn analyze(
                 .chat_id(chat_id)
                 .message_id(start_message)
                 .build(),
-        )?;
+        )
+        .context("delete start message")?;
     } else {
         bot.edit_message_text(
             &EditMessageTextParams::builder()
@@ -131,7 +135,8 @@ pub fn analyze(
                 .message_id(start_message)
                 .text(format!("yt-dlp {}", output.status))
                 .build(),
-        )?;
+        )
+        .context("edit start message into error status")?;
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
