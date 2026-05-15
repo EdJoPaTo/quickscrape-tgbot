@@ -18,8 +18,8 @@ RUN cargo build --release --locked --offline
 FROM docker.io/library/alpine:3 AS final
 RUN apk upgrade --no-cache \
 	&& apk add --no-cache ffmpeg yt-dlp \
-	&& addgroup -g 1234 runner \
-	&& adduser -D -u 1234 -G runner runner \
+	&& addgroup -S -g 923 runner \
+	&& adduser -S -D -u 923 -G runner runner \
 	&& rm -f -- /etc/*-
 
 COPY --from=builder /build/target/release/quickscrape-tgbot /usr/local/bin/
