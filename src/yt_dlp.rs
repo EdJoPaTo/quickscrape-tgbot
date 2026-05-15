@@ -46,9 +46,16 @@ pub fn analyze(
         .expect("Should be able to spawn yt-dlp");
 
     for entry in std::fs::read_dir(tempdir.path()).expect("Should be able to read tempdir") {
-        let path = entry
-            .expect("Should be able to read file in tempdir")
-            .path();
+        let entry = entry.expect("Should be able to read file in tempdir");
+        let path = entry.path();
+        let filesize = entry
+            .metadata()
+            .expect("Should be able to read file metadata")
+            .len();
+        if filesize == 0 {
+            eprintln!("Skip 0 byte sized file: {}", path.display());
+            continue;
+        }
 
         if path.extension().and_then(std::ffi::OsStr::to_str) == Some("description") {
             if let Some(description) = std::fs::read_to_string(&path)
