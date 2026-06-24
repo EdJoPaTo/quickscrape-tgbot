@@ -142,7 +142,7 @@ impl Telegram {
     where
         F: Fn(&Bot, i64, &ReplyParameters, &str) -> anyhow::Result<()>,
     {
-        let urls = get_text_urls(message)?;
+        let urls = get_text_urls(message);
         anyhow::ensure!(!urls.is_empty(), "No url found in message");
         for url in urls {
             let reply_params = ReplyParameters::builder()
@@ -168,24 +168,24 @@ impl Telegram {
     }
 }
 
-fn get_text_urls(message: &Message) -> anyhow::Result<Vec<&str>> {
+fn get_text_urls(message: &Message) -> Vec<&str> {
     let (Some(text), Some(entities)) = (&message.text, &message.entities) else {
-        return Ok(Vec::new());
+        return Vec::new();
     };
-    let entities = entities
+    entities
         .iter()
-        .filter(|entity| matches!(entity.type_field, MessageEntityType::Url));
-    let mut urls = Vec::new();
-    for entity in entities {
-        let start = entity.offset as usize;
-        let length = entity.length as usize;
-        let end = start.saturating_add(length);
-        let url = text
-            .get(start..end)
-            .with_context(|| format!("There should be an url at the given entity: {entity:?}"))?;
-        urls.push(url);
-    }
-    Ok(urls)
+        .filter_map(|entity| match entity.type_field {
+            MessageEntityType::Url => {
+                let start = entity.offset as usize;
+                let length = entity.length as usize;
+                let end = start.saturating_add(length);
+                let url = &text[start..end];
+                Some(url)
+            }
+            MessageEntityType::TextLink => entity.url.as_deref(),
+            _ => None,
+        })
+        .collect()
 }
 
 #[expect(clippy::cast_possible_truncation)]
