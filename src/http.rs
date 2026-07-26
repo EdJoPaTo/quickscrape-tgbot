@@ -5,7 +5,7 @@ use ureq::{Agent, Body};
 
 /// Firefox ESR
 const USER_AGENT_VALUE: HeaderValue = HeaderValue::from_static(
-    "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:153.0) Gecko/20100101 Firefox/153.0",
 );
 
 pub fn get(url: &str) -> Result<Response<Body>, ureq::Error> {
