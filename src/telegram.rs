@@ -179,6 +179,7 @@ fn get_text_urls(message: &Message) -> Vec<&str> {
                 let start = entity.offset as usize;
                 let length = entity.length as usize;
                 let end = start.saturating_add(length);
+                #[expect(clippy::string_slice)]
                 let url = &text[start..end];
                 Some(url)
             }
