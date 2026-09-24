@@ -16,14 +16,11 @@ pub struct Telegram {
 impl Telegram {
     pub fn new() -> Self {
         let bot_token = std::env::var("BOT_TOKEN").expect("Should have BOT_TOKEN in environment");
-        let allowed_users = std::env::var("USERS")
-            .ok()
-            .map(|var| {
-                var.split(char::is_whitespace)
-                    .filter_map(|user| user.parse().ok())
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
+        let allowed_users = std::env::var("USERS").map_or_default(|var| {
+            var.split(char::is_whitespace)
+                .filter_map(|user| user.parse().ok())
+                .collect::<Vec<_>>()
+        });
         dbg!(&allowed_users);
         if allowed_users.is_empty() {
             #[cfg(not(debug_assertions))]
