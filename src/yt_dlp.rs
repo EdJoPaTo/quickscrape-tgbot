@@ -40,7 +40,7 @@ pub fn analyze(
         .arg("--no-playlist")
         .arg("--restrict-filenames")
         .arg("--trim-filenames=80")
-        .arg("--format-sort=vcodec:h264,+size,+br,+res,+fps")
+        .arg("--format-sort=vcodec:h265,+size,+br,+res,+fps")
         .arg(url)
         .output()
         .expect("Should be able to spawn yt-dlp");
